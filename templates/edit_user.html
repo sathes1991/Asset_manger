@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Edit User</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label>Username</label>
+            <input type="text" name="username" value="{{ user.username }}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label>Role</label>
+            <select name="role" class="form-control" required>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>Viewer</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label>New Password (leave blank to keep current)</label>
+            <input type="password" name="password" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Update User</button>
+        <a href="{{ url_for('users') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

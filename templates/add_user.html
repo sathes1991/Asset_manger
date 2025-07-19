@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Add User</h2>
+<form method="post">
+  <div class="mb-3">
+    <label>Username</label>
+    <input class="form-control" name="username" required>
+  </div>
+  <div class="mb-3">
+    <label>Password</label>
+    <input type="password" class="form-control" name="password" required>
+  </div>
+  <div class="mb-3">
+    <label>Role</label>
+    <select name="role" class="form-control">
+      <option value="admin">Admin</option>
+      <option value="viewer">Viewer</option>
+    </select>
+  </div>
+  <button class="btn btn-success">Create User</button>
+</form>
+{% endblock %}

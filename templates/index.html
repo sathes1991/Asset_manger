@@ -54,6 +54,16 @@
 <nav class="navbar navbar-expand-lg mb-4">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">🖥️ HTIC Asset Details</a>
+        {% if session['username'] %}
+        <div class="d-flex align-items-center ms-auto">
+            <span class="text-white me-3">
+                👤 {{ session['username'] }} ({{ session['role'] }})
+            </span>
+            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light">
+                🔓 Logout
+            </a>
+        </div>
+        {% endif %}
     </div>
 </nav>
 

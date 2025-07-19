@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request, redirect, send_file, flash, url_for
+from flask import Flask, render_template, request, redirect, send_file, flash, url_for, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
 from models import Asset
 from export_excel import export_assets_to_excel
 import os
 from datetime import date, datetime
+from functools import wraps
+from models import User
 
 # 1. Create Flask app and set config
 app = Flask(__name__)
@@ -19,8 +22,28 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
-# 4. Routes
+# --- Decorators ---
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("Login required", "warning")
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('role') != 'admin':
+            flash("Admin access only", "danger")
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- Routes ---
 @app.route('/')
+@login_required
 def index():
     filters = {
         'asset_type': request.args.get('asset_type'),
@@ -38,7 +61,36 @@ def index():
     assets = query.all()
     return render_template('index.html', assets=assets, filters=filters)
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    next_page = request.args.get('next')  # Get "next" URL if present
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        user = User.query.filter_by(username=username).first()
+
+        #      # ✅ Debugging output
+        # print(f"Trying to log in as: {username}")
+        # print(f"User found: {user.username if user else 'None'}")
+
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['role'] = user.role
+            return redirect(next_page or url_for('index'))     # Redirect to original page or index
+        else:
+            flash('Invalid username or password', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/add', methods=['GET', 'POST'])
+@admin_required
 def add_asset():
     if request.method == 'POST':
         try:
@@ -69,6 +121,7 @@ def add_asset():
     return render_template('add_asset.html')
 
 @app.route('/edit/<int:asset_id>', methods=['GET', 'POST'])
+@admin_required
 def edit_asset(asset_id):
     asset = Asset.query.get_or_404(asset_id)
     if request.method == 'POST':
@@ -92,34 +145,8 @@ def edit_asset(asset_id):
         return redirect('/')
     return render_template('edit_asset.html', asset=asset)
 
-# @app.route('/bulk_action', methods=['POST'])
-# def bulk_action():
-#     selected_ids = request.form.getlist('selected_ids')
-#     action = request.form.get('action')
-
-#     if not selected_ids:
-#         flash("No asset selected.", "warning")
-#         return redirect(url_for('index'))
-
-#     if action == 'delete':
-#         for asset_id in selected_ids:
-#             asset = Asset.query.get(asset_id)
-#             if asset:
-#                 db.session.delete(asset)
-#         db.session.commit()
-#         flash(f"Deleted {len(selected_ids)} asset(s).", "success")
-
-#     elif action == 'edit':
-#         if len(selected_ids) == 1:
-#             return redirect(url_for('edit_asset', asset_id=selected_ids[0]))
-#         else:
-#             flash("You can only edit one asset at a time.", "warning")
-
-#     return redirect(url_for('index'))
-
-
-
 @app.route('/delete/<int:id>', methods=['POST'])
+@admin_required
 def delete_asset(id):
     asset = Asset.query.get_or_404(id)
     db.session.delete(asset)
@@ -128,9 +155,79 @@ def delete_asset(id):
     return redirect(url_for('index'))
 
 @app.route('/export')
+@admin_required
 def export():
     filepath = export_assets_to_excel()
     return send_file(filepath, as_attachment=True)
+
+
+@app.route('/users')
+@admin_required
+def users():
+    all_users = User.query.all()
+    return render_template('users.html', users=all_users)
+
+@app.route('/add_user', methods=['GET', 'POST'])
+@admin_required
+def add_user():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
+
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'warning')
+            return redirect(url_for('add_user'))
+
+        hashed_password = generate_password_hash(password)
+        new_user = User(username=username, password=hashed_password, role=role)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('User created successfully', 'success')
+        return redirect(url_for('users'))
+
+    return render_template('add_user.html')
+
+@app.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        user.username = request.form['username']
+        user.role = request.form['role']
+        if request.form['password']:
+            user.password = generate_password_hash(request.form['password'])
+        db.session.commit()
+        flash('User updated successfully.')
+        return redirect(url_for('users'))
+    return render_template('edit_user.html', user=user)
+
+
+@app.route('/users/delete/<int:user_id>', methods=['POST'])
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.username == 'admin':
+        flash("Can't delete admin user.", 'warning')
+        return redirect(url_for('users'))
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted successfully.')
+    return redirect(url_for('users'))
+
+
+@app.route('/reset_password/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+def reset_password(user_id):
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+        flash('Password updated successfully', 'success')
+        return redirect(url_for('users'))
+    return render_template('reset_password.html', user=user)
+
 
 # 5. Run server if script is main
 if __name__ == '__main__':
