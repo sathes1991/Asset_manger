@@ -71,6 +71,17 @@
     <div class="card p-4 mb-4">
         <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
             <h3 class="mb-0">Asset Inventory</h3>
+            <form class="row g-2 mb-3" method="get">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="search" placeholder="🔍 Search assets..." value="{{ search }}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-dark">Search</button>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
             <div>
                 <a href="/add" class="btn btn-primary me-2">
                     ➕ Add Asset
@@ -92,15 +103,15 @@
                         <th>Model</th>
                         <th>Serial</th>
                         <th>Barcode</th>
+                        <th>System Details</th>
                         <th>Assigned To</th>
+                        <th>Team Name</th>
                         <th>Department</th>
                         <th>Given Date</th>
                         <th>Status</th>
                         <th>Return Date</th>
-                        <th>Project Name</th>
                         <th>Purchase Date</th>
                         <th>Vendor Name</th>
-                        <th>System Details</th>
                         <th>Remarks</th>
                         <th>Actions</th>
                     </tr>
@@ -113,15 +124,15 @@
                         <td>{{ asset.model_number }}</td>
                         <td>{{ asset.serial_number }}</td>
                         <td>{{ asset.company_barcode }}</td>
+                        <td>{{ asset.system_details or '' }}</td>
                         <td>{{ asset.assigned_to }}</td>
+                        <td>{{ asset.team_name or '' }}</td>
                         <td>{{ asset.department or '' }}</td>
                         <td>{{ asset.given_date.strftime('%Y-%m-%d') if asset.given_date else '' }}</td>
                         <td>{{ asset.status }}</td>
                         <td>{{ asset.return_date.strftime('%Y-%m-%d') if asset.return_date else '' }}</td>
-                        <td>{{ asset.project_name or '' }}</td>
                         <td>{{ asset.purchase_date.strftime('%Y-%m-%d') if asset.purchase_date else '' }}</td>
                         <td>{{ asset.vendor_name or '' }}</td>
-                        <td>{{ asset.system_details or '' }}</td>
                         <td>{{ asset.remarks or '' }}</td>
                         <td>
                             <div class="d-flex gap-2">

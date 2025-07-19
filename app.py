@@ -50,16 +50,38 @@ def index():
         'assigned_to': request.args.get('assigned_to'),
         'department': request.args.get('department'),
         'vendor_name': request.args.get('vendor_name'),
-        'project_name': request.args.get('project_name')
+        'team_name': request.args.get('team_name')
     }
 
+    search = request.args.get('search')
     query = Asset.query
+
+    # Apply field filters
     for field, value in filters.items():
         if value:
             query = query.filter(getattr(Asset, field).ilike(f'%{value}%'))
 
+    # Apply search keyword (multi-field)
+    if search:
+        search = f"%{search}%"
+        query = query.filter(
+            db.or_(
+                Asset.asset_type.ilike(search),
+                Asset.brand.ilike(search),
+                Asset.model_number.ilike(search),
+                Asset.serial_number.ilike(search),
+                Asset.company_barcode.ilike(search),
+                Asset.system_details.ilike(search),
+                Asset.assigned_to.ilike(search),
+                Asset.department.ilike(search),
+                Asset.team_name.ilike(search),
+                Asset.vendor_name.ilike(search),
+                Asset.remarks.ilike(search)
+            )
+        )
+
     assets = query.all()
-    return render_template('index.html', assets=assets, filters=filters)
+    return render_template('index.html', assets=assets, filters=filters, search=request.args.get('search', ''))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -100,15 +122,15 @@ def add_asset():
                 model_number=request.form['model_number'],
                 serial_number=request.form['serial_number'],
                 company_barcode=request.form['company_barcode'],
+                system_details=request.form['system_details'],
                 assigned_to=request.form['assigned_to'],
+                team_name=request.form['team_name'],
                 department=request.form['department'],
                 given_date=datetime.strptime(request.form['given_date'], '%Y-%m-%d').date() if request.form['given_date'] else None,
                 status=request.form['status'],
                 return_date=datetime.strptime(request.form['return_date'], '%Y-%m-%d').date() if request.form['return_date'] else None,
-                project_name=request.form['project_name'],
                 purchase_date=datetime.strptime(request.form['purchase_date'], '%Y-%m-%d').date() if request.form['purchase_date'] else None,
                 vendor_name=request.form['vendor_name'],
-                system_details=request.form['system_details'],
                 remarks=request.form['remarks']
             )
             db.session.add(asset)
@@ -130,15 +152,15 @@ def edit_asset(asset_id):
         asset.model_number = request.form['model_number']
         asset.serial_number = request.form['serial_number']
         asset.company_barcode = request.form['company_barcode']
+        asset.system_details = request.form['system_details']
         asset.assigned_to = request.form['assigned_to']
+        asset.team_name = request.form['team_name']
         asset.department = request.form['department']
         asset.given_date = datetime.strptime(request.form['given_date'], '%Y-%m-%d').date() if request.form['given_date'] else None
         asset.return_date = datetime.strptime(request.form['return_date'], '%Y-%m-%d').date() if request.form['return_date'] else None
         asset.purchase_date = datetime.strptime(request.form['purchase_date'], '%Y-%m-%d').date() if request.form['purchase_date'] else None
         asset.status = request.form['status']
-        asset.project_name = request.form['project_name']
         asset.vendor_name = request.form['vendor_name']
-        asset.system_details = request.form['system_details']
         asset.remarks = request.form['remarks']
 
         db.session.commit()

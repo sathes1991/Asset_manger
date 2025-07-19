@@ -8,15 +8,15 @@ class Asset(db.Model):
     model_number = db.Column(db.String(100))
     serial_number = db.Column(db.String(100))
     company_barcode = db.Column(db.String(100))
+    system_details = db.Column(db.Text)
     assigned_to = db.Column(db.String(100))
+    team_name = db.Column(db.String(100))
     department = db.Column(db.String(100))
     given_date = db.Column(db.Date)
     status = db.Column(db.String(100))
     return_date = db.Column(db.Date)
-    project_name = db.Column(db.String(100))
     purchase_date = db.Column(db.Date)
     vendor_name = db.Column(db.String(100))
-    system_details = db.Column(db.Text)
     remarks = db.Column(db.Text)
 
 class User(db.Model):

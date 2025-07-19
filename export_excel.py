@@ -12,15 +12,15 @@ def export_assets_to_excel():
             'Model': a.model_number,
             'Serial': a.serial_number,
             'Barcode': a.company_barcode,
+            'System Details': a.system_details,
             'Assigned To': a.assigned_to,
+            'Team Name': a.team_name,
             'Department': a.department,
             'Given Date': a.given_date.strftime('%Y-%m-%d') if a.given_date else '',
             'Status': a.status,
             'Return Date': a.return_date.strftime('%Y-%m-%d') if a.return_date else '',
-            'Project Name': a.project_name,
             'Purchase Date': a.purchase_date.strftime('%Y-%m-%d') if a.purchase_date else '',
             'Vendor Name': a.vendor_name,
-            'System Details': a.system_details,
             'Remarks': a.remarks
         } for a in assets]
 
